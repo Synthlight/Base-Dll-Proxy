@@ -2,7 +2,7 @@
 
 #include "Logger.h"
 
-#include "version.h"
+#include "proxy.h"
 
 const char* targetDll = "version.dll";
 HMODULE varsionHMod;

@@ -30,10 +30,13 @@
     <ClInclude Include="ScanMemory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="version.h">
+    <ClInclude Include="base-dllmain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="base-dllmain.h">
+    <ClInclude Include="proxy-router.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="proxy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -50,10 +53,10 @@
     <ClCompile Include="ScanMemory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="version.cpp">
+    <ClCompile Include="base-dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="base-dllmain.cpp">
+    <ClCompile Include="proxy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
