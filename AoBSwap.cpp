@@ -9,6 +9,7 @@ std::vector<BYTE> oneByteNop   = std::vector<BYTE>{0x90};
 std::vector<BYTE> twoByteNop   = std::vector<BYTE>{0x66, 0x90};
 std::vector<BYTE> threeByteNop = std::vector<BYTE>{0x0F, 0x1F, 0x00};
 std::vector<BYTE> fourByteNop  = std::vector<BYTE>{0x0F, 0x1F, 0x40, 0x00};
+std::vector<BYTE> fiveByteNop  = std::vector<BYTE>{0x0F, 0x1F, 0x44, 0x00, 0x00};
 std::vector<BYTE> sixByteNop   = std::vector<BYTE>{0x66, 0x0F, 0x1F, 0x44, 0x00, 0x00};
 
 AoBSwap::AoBSwap(std::string targetModule, std::vector<BYTE>& bytesToFind, std::vector<BYTE>& bytesToReplace) {

@@ -18,6 +18,7 @@ extern std::vector<BYTE> oneByteNop;
 extern std::vector<BYTE> twoByteNop;
 extern std::vector<BYTE> threeByteNop;
 extern std::vector<BYTE> fourByteNop;
+extern std::vector<BYTE> fiveByteNop;
 extern std::vector<BYTE> sixByteNop;
 
 std::vector<BYTE> IntToByteArray(long long value, int size);
