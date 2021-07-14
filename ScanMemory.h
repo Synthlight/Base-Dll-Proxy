@@ -8,3 +8,5 @@ std::vector<const BYTE*> ScanMemory(std::string moduleName, const std::string& b
 std::vector<const BYTE*> ScanMemory(std::string moduleName, const std::string&& bytesToFind);
 
 void DoWithProtect(BYTE* address, SIZE_T size, std::function<void()> memActions);
+
+BOOL VirtualProtect(_In_ PVOID address, _In_ SIZE_T size, _In_ ULONG newProtection);

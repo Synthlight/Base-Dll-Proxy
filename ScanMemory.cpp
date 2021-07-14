@@ -113,3 +113,8 @@ void DoWithProtect(BYTE* address, SIZE_T size, std::function<void()> memActions)
         Log("VirtualProtect failed.");
     }
 }
+
+BOOL VirtualProtect(_In_ PVOID address, _In_ SIZE_T size, _In_ ULONG newProtection) {
+    DWORD dummy;
+    return VirtualProtect(address, size, newProtection, &dummy);
+}
