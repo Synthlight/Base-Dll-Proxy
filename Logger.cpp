@@ -2,12 +2,10 @@
 
 #include "Logger.h"
 
-std::ofstream out = std::ofstream(outputFile.c_str(), std::ios_base::out | std::ios_base::trunc);
-
 std::string GetCurrentDateTime(std::string s) {
     time_t now = time(0);
     struct tm tstruct;
-    char buf[80];
+    char buf[80] = {};
 
     localtime_s(&tstruct, &now);
 
@@ -18,3 +16,34 @@ std::string GetCurrentDateTime(std::string s) {
 
     return std::string(buf);
 };
+
+std::string GetLogPathAsCurrentDllDotLog() {
+    char path[MAX_PATH];
+    HMODULE hm = NULL;
+
+    if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                          GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                          (LPCSTR) &SetupLog, &hm) == 0) {
+        int ret = GetLastError();
+        fprintf(stderr, "GetModuleHandle failed, error = %d\n", ret);
+        // Return or however you want to handle an error.
+    }
+    if (GetModuleFileName(hm, path, sizeof(path)) == 0) {
+        int ret = GetLastError();
+        fprintf(stderr, "GetModuleFileName failed, error = %d\n", ret);
+        // Return or however you want to handle an error.
+    }
+
+    auto pathStr = std::string(path);
+    //pathStr = replace(pathStr, "Reactor-Count-Mod.dll", "Log.log");
+    pathStr = pathStr.replace(pathStr.find("Reactor-Count-Mod.dll"), sizeof("Reactor-Count-Mod.dll") - 1, "Reactor-Count-Mod.log");
+    //pathStr = pathStr + std::string(".log");
+
+    //Log("Got the new log path: " << pathStr);
+
+    return pathStr;
+}
+
+std::ofstream SetupLog(std::string path) {
+    return std::ofstream(path.c_str(), std::ios_base::out | std::ios_base::trunc);
+}

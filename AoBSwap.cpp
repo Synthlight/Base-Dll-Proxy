@@ -66,7 +66,7 @@ std::vector<BYTE> StringToByteVector(const std::string input) {
     auto stringBytes = SpltStringBySpace(input);
     std::vector<BYTE> bytes;
     for (auto s : stringBytes) {
-        bytes.push_back(std::stoul(s.c_str(), nullptr, 16));
+        bytes.push_back((BYTE) std::stoul(s.c_str(), nullptr, 16));
     }
     return bytes;
 }

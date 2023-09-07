@@ -1,9 +1,13 @@
 #pragma once
 
-extern const std::string outputFile;
+// Examples.
+//std::ofstream out = std::ofstream("C:\\Temp\\Log.log", std::ios_base::out | std::ios_base::trunc);
+
 extern std::ofstream out;
 
-extern std::string GetCurrentDateTime(std::string s);
+std::string GetCurrentDateTime(std::string s);
+std::string GetLogPathAsCurrentDllDotLog();
+std::ofstream SetupLog(std::string path);
 
 #define NOW GetCurrentDateTime("now")
 #define PRE_LOG out << NOW << '\t'
