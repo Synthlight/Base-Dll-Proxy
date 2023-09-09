@@ -36,7 +36,7 @@ std::string GetLogPathAsCurrentDllDotLog() {
 
     auto pathStr = std::string(path);
     //pathStr = replace(pathStr, "Reactor-Count-Mod.dll", "Log.log");
-    pathStr = pathStr.replace(pathStr.find("Reactor-Count-Mod.dll"), sizeof("Reactor-Count-Mod.dll") - 1, "Reactor-Count-Mod.log");
+    pathStr = pathStr.replace(pathStr.find(".dll"), sizeof(".dll") - 1, ".log");
     //pathStr = pathStr + std::string(".log");
 
     //Log("Got the new log path: " << pathStr);
