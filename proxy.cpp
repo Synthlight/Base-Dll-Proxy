@@ -5,24 +5,24 @@
 #include "proxy.h"
 
 const char* targetDll = "version.dll";
-HMODULE varsionHMod;
+HMODULE     versionHMod;
 
 void Attach() {
-    char syspath[MAX_PATH];
-    GetSystemDirectory(syspath, MAX_PATH);
-    strcat_s(syspath, "\\");
-    strcat_s(syspath, targetDll);
+    char sysPath[MAX_PATH];
+    GetSystemDirectory(sysPath, MAX_PATH);
+    strcat_s(sysPath, "\\");
+    strcat_s(sysPath, targetDll);
 
-    varsionHMod = LoadLibrary(syspath);
-    if (varsionHMod == nullptr) {
-        Log("Unable to load base " << targetDll << " dll.");
+    versionHMod = LoadLibrary(sysPath);
+    if (versionHMod == nullptr) {
+        LOG("Unable to load base " << targetDll << " dll.");
         return;
     }
 
-    Log("Orig " << targetDll << " loaded.");
+    LOG("Orig " << targetDll << " loaded.");
 }
 
 void Detach() {
-    Log("Unloading orig " << targetDll << ".");
-    FreeLibrary(varsionHMod);
+    LOG("Unloading orig " << targetDll << ".");
+    FreeLibrary(versionHMod);
 }

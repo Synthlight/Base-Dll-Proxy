@@ -4,43 +4,44 @@
 
 #include "ScanMemory.h"
 
-std::string wildcard = "??";
+const std::string wildcard = "??";
 
-template<typename T>
+template <typename T>
 const BYTE* DoSearch(const BYTE* begin, const BYTE* end, const std::vector<T>& toFind);
 
-template<>
+template <>
 const BYTE* DoSearch<BYTE>(const BYTE* begin, const BYTE* end, const std::vector<BYTE>& toFind) {
     return std::search(begin, end, toFind.begin(), toFind.end());
 }
 
-template<>
+template <>
 const BYTE* DoSearch<std::string>(const BYTE* begin, const BYTE* end, const std::vector<std::string>& toFind) {
-    return std::search(begin, end, toFind.begin(), toFind.end(), [](BYTE fromMemory, std::string fromToFind) {
-        if (fromToFind == wildcard) return true;
-        auto value = (BYTE) std::stoi(fromToFind, nullptr, 16);
-        return value == fromMemory;
-    });
+    return std::search(begin, end, toFind.begin(), toFind.end(),
+                       [](const BYTE fromMemory, const std::string& fromToFind) {
+                           if (fromToFind == wildcard) return true;
+                           const auto value = static_cast<BYTE>(std::stoi(fromToFind, nullptr, 16));
+                           return value == fromMemory;
+                       });
 }
 
-template<typename T>
-std::vector<const BYTE*> ScanMemory(void* addressLow, std::size_t nbytes, const std::vector<T>& toFind) {
+template <typename T>
+std::vector<const BYTE*> ScanMemory(void* addressLow, const std::size_t scanLength, const std::vector<T>& toFind) {
     std::vector<const BYTE*> addressesFound;
 
     // all readable pages: adjust this as required
-    const DWORD pmask = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+    constexpr DWORD pageMask = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
 
     MEMORY_BASIC_INFORMATION mbi{};
 
-    auto address = static_cast<BYTE*>(addressLow);
-    auto addressHigh = address + nbytes;
+    auto       address     = static_cast<BYTE*>(addressLow);
+    const auto addressHigh = address + scanLength;
 
     while (address < addressHigh && VirtualQuery(address, std::addressof(mbi), sizeof(mbi))) {
         // committed memory, readable, wont raise exception guard page
-        // if((mbi.State == MEM_COMMIT) && (mbi.Protect | pmask) && !(mbi.Protect & PAGE_GUARD))
-        if ((mbi.State == MEM_COMMIT) && (mbi.Protect & pmask) && !(mbi.Protect & PAGE_GUARD)) {
+        // if((mbi.State == MEM_COMMIT) && (mbi.Protect | pageMask) && !(mbi.Protect & PAGE_GUARD))
+        if (mbi.State == MEM_COMMIT && mbi.Protect & pageMask && !(mbi.Protect & PAGE_GUARD)) {
             auto begin = static_cast<const BYTE*>(mbi.BaseAddress);
-            auto end = begin + mbi.RegionSize;
+            auto end   = begin + mbi.RegionSize;
             auto found = DoSearch(begin, end, toFind);
 
             while (found != end) {
@@ -56,37 +57,37 @@ std::vector<const BYTE*> ScanMemory(void* addressLow, std::size_t nbytes, const 
     return addressesFound;
 }
 
-template<typename T>
-std::vector<const BYTE*> ScanMemoryT(std::string moduleName, const std::vector<T>& bytesToFind) {
+template <typename T>
+std::vector<const BYTE*> ScanMemoryT(const std::string& moduleName, const std::vector<T>& bytesToFind) {
     auto base = GetModuleHandle(moduleName.c_str());
     if (base == nullptr) return {};
 
-    MODULEINFO minfo {};
-    GetModuleInformation(GetCurrentProcess(), base, std::addressof(minfo), sizeof(minfo));
+    MODULEINFO moduleInfo{};
+    GetModuleInformation(GetCurrentProcess(), base, std::addressof(moduleInfo), sizeof(moduleInfo));
 
-    return ScanMemory(base, minfo.SizeOfImage, bytesToFind);
+    return ScanMemory(base, moduleInfo.SizeOfImage, bytesToFind);
 }
 
-std::vector<const BYTE*> ScanMemory(std::string moduleName, const std::vector<BYTE>& bytesToFind) {
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<BYTE>& bytesToFind) {
     return ScanMemoryT(moduleName, bytesToFind);
 }
 
-std::vector<const BYTE*> ScanMemory(std::string moduleName, const std::vector<BYTE>&& bytesToFind) {
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<BYTE>&& bytesToFind) {
     return ScanMemoryT(moduleName, bytesToFind);
 }
 
-std::vector<const BYTE*> ScanMemory(std::string moduleName, const std::vector<std::string>& bytesToFind) {
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<std::string>& bytesToFind) {
     return ScanMemoryT(moduleName, bytesToFind);
 }
 
-std::vector<const BYTE*> ScanMemory(std::string moduleName, const std::vector<std::string>&& bytesToFind) {
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<std::string>&& bytesToFind) {
     return ScanMemoryT(moduleName, bytesToFind);
 }
 
-const std::vector<std::string> stringToVector(const std::string& bytesToFind) {
+std::vector<std::string> StringToVector(const std::string& bytesToFind) {
     std::vector<std::string> byteStringArray;
-    auto stringStream = std::istringstream(bytesToFind);
-    std::string s;
+    auto                     stringStream = std::istringstream(bytesToFind);
+    std::string              s;
 
     while (std::getline(stringStream, s, ' ')) {
         byteStringArray.push_back(s);
@@ -95,26 +96,25 @@ const std::vector<std::string> stringToVector(const std::string& bytesToFind) {
     return byteStringArray;
 }
 
-std::vector<const BYTE*> ScanMemory(std::string moduleName, const std::string& bytesToFind) {
-    return ScanMemoryT(moduleName, stringToVector(bytesToFind));
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::string& bytesToFind) {
+    return ScanMemoryT(moduleName, StringToVector(bytesToFind));
 }
 
-std::vector<const BYTE*> ScanMemory(std::string moduleName, const std::string&& bytesToFind) {
-    return ScanMemoryT(moduleName, stringToVector(bytesToFind));
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::string&& bytesToFind) {
+    return ScanMemoryT(moduleName, StringToVector(bytesToFind));
 }
 
-void DoWithProtect(BYTE* address, SIZE_T size, std::function<void()> memActions) {
+void DoWithProtect(BYTE* address, const SIZE_T size, const std::function<void()>& memActions) {
     DWORD oldProtect = 0;
     if (VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, &oldProtect)) {
         memActions();
         VirtualProtect(address, size, oldProtect, &oldProtect);
-    }
-    else {
-        Log("VirtualProtect failed.");
+    } else {
+        LOG("VirtualProtect failed.");
     }
 }
 
-BOOL VirtualProtect(_In_ PVOID address, _In_ SIZE_T size, _In_ ULONG newProtection) {
+BOOL VirtualProtect(_In_ const PVOID address, const _In_ SIZE_T size, _In_ const ULONG newProtection) {
     DWORD dummy;
     return VirtualProtect(address, size, newProtection, &dummy);
 }

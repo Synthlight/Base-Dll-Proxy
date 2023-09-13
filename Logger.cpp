@@ -2,48 +2,46 @@
 
 #include "Logger.h"
 
-std::string GetCurrentDateTime(std::string s) {
-    time_t now = time(0);
-    struct tm tstruct;
-    char buf[80] = {};
+std::string GetCurrentDateTime(const std::string& s) {
+    const time_t now = time(nullptr);
+    tm           time;
+    char         buf[80] = {};
 
-    localtime_s(&tstruct, &now);
+    localtime_s(&time, &now);
 
     if (s == "now")
-        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &time);
     else if (s == "date")
-        strftime(buf, sizeof(buf), "%Y-%m-%d", &tstruct);
+        strftime(buf, sizeof(buf), "%Y-%m-%d", &time);
 
-    return std::string(buf);
+    return {buf};
 };
 
 std::string GetLogPathAsCurrentDllDotLog() {
-    char path[MAX_PATH];
-    HMODULE hm = NULL;
+    char    path[MAX_PATH];
+    HMODULE hm = nullptr;
 
     if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
                           GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                          (LPCSTR) &SetupLog, &hm) == 0) {
-        int ret = GetLastError();
-        fprintf(stderr, "GetModuleHandle failed, error = %d\n", ret);
-        // Return or however you want to handle an error.
+                          reinterpret_cast<LPCSTR>(&SetupLog), &hm) == 0) {
+        const auto ret = GetLastError();
+        LOG("GetModuleHandle failed, error = " << ret);
+        return "";
     }
     if (GetModuleFileName(hm, path, sizeof(path)) == 0) {
-        int ret = GetLastError();
-        fprintf(stderr, "GetModuleFileName failed, error = %d\n", ret);
-        // Return or however you want to handle an error.
+        const auto ret = GetLastError();
+        LOG("GetModuleFileName failed, error = " << ret);
+        return "";
     }
 
     auto pathStr = std::string(path);
-    //pathStr = replace(pathStr, "Reactor-Count-Mod.dll", "Log.log");
-    pathStr = pathStr.replace(pathStr.find(".dll"), sizeof(".dll") - 1, ".log");
-    //pathStr = pathStr + std::string(".log");
+    pathStr      = pathStr.replace(pathStr.find(".dll"), sizeof(".dll") - 1, ".log");
 
-    //Log("Got the new log path: " << pathStr);
+    //LOG("Got the new log path: " << pathStr);
 
     return pathStr;
 }
 
-std::ofstream SetupLog(std::string path) {
+std::ofstream SetupLog(const std::string& path) {
     return std::ofstream(path.c_str(), std::ios_base::out | std::ios_base::trunc);
 }
