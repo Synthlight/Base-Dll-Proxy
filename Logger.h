@@ -6,6 +6,7 @@
 extern std::ofstream out;
 
 std::string   GetCurrentDateTime(const std::string& s);
+std::string   GetFullModulePath();
 std::string   GetLogPathAsCurrentDllDotLog();
 std::ofstream SetupLog(const std::string& path);
 

@@ -2,6 +2,8 @@
 
 #include "Logger.h"
 
+#include "Util.h"
+
 std::string GetCurrentDateTime(const std::string& s) {
     const time_t now = time(nullptr);
     tm           time;
@@ -17,7 +19,7 @@ std::string GetCurrentDateTime(const std::string& s) {
     return {buf};
 };
 
-std::string GetLogPathAsCurrentDllDotLog() {
+std::string GetFullModulePath() {
     char    path[MAX_PATH];
     HMODULE hm = nullptr;
 
@@ -33,9 +35,20 @@ std::string GetLogPathAsCurrentDllDotLog() {
         LOG("GetModuleFileName failed, error = " << ret);
         return "";
     }
+    return path;
+}
 
-    auto pathStr = std::string(path);
-    pathStr      = pathStr.replace(pathStr.find(".dll"), sizeof(".dll") - 1, ".log");
+std::string GetLogPathAsCurrentDllDotLog() {
+    auto        pathStr = GetFullModulePath();
+    std::string ending;
+
+    if (EndsWith(pathStr, ".dll")) {
+        ending = ".dll";
+    } else if (EndsWith(pathStr, ".asi")) {
+        ending = ".asi";
+    }
+
+    pathStr = pathStr.replace(pathStr.find(ending), 4, ".log");
 
     //LOG("Got the new log path: " << pathStr);
 
