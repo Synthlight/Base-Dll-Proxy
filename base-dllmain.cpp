@@ -14,7 +14,7 @@ BOOL APIENTRY BaseDllMain(HMODULE hModule, const DWORD ulReasonForCall, LPVOID l
         //DisableThreadLibraryCalls(hModule);
         Attach();
 
-        newThread = std::thread([]() {
+        newThread = std::thread([] {
             Sleep(5000);
             DoInjection();
         });

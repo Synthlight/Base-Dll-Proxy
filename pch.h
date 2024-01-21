@@ -22,3 +22,4 @@
 #include <Unknwn.h>
 #include <vector>
 #include <windows.h>
+#include <winver.h>

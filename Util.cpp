@@ -23,9 +23,20 @@ void PrintNBytes(const BYTE* address, const int length) {
     out << NOW << '\t' << "Bytes: ";
     for (auto i = 0; i < length; i++) {
         if (i > 0) out << ",";
-        out << std::uppercase << std::hex << static_cast<const UINT32>(*(address + i));
+        out << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << static_cast<const UINT32>(*(address + i));
     }
-    out << std::endl;
+    out << std::endl; // NOLINT(performance-avoid-endl)
+}
+
+std::string BytesToString(const std::vector<BYTE>& bytes) {
+    auto outStream = std::ostringstream();
+
+    for (UINT64 i = 0; i < bytes.size(); i++) {
+        if (i > 0) outStream << ",";
+        outStream << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << static_cast<const UINT32>(bytes[i]);
+    }
+
+    return outStream.str();
 }
 
 bool EndsWith(std::string const& value, std::string const& ending) {
@@ -74,4 +85,34 @@ UINT32 GetGameVersion() {
     }
 
     return MAKE_EXE_VERSION_EX(1, 1, 1, 1);
+}
+
+// https://stackoverflow.com/a/17387176
+std::string GetLastErrorAsString() {
+    // Get the error message ID, if any.
+    const DWORD errorMessageId = ::GetLastError();
+    if (errorMessageId == 0) {
+        return {}; // No error message has been recorded
+    }
+
+    LPSTR messageBuffer = nullptr;
+
+    // Ask Win32 to give us the string version of that message ID.
+    // The parameters we pass in, tell Win32 to create the buffer that holds the message for us (because we don't yet know how long the message string will be).
+    const size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                                       nullptr, errorMessageId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPSTR>(&messageBuffer), 0, nullptr);
+
+    // Copy the error message into a std::string.
+    std::string message(messageBuffer, size);
+
+    // Free the Win32's string's buffer.
+    LocalFree(messageBuffer);
+
+    return message;
+}
+
+MODULEINFO GetModuleInfo(_In_ const HANDLE hProcess, _In_ const HMODULE hModule) {
+    MODULEINFO moduleInfo;
+    GetModuleInformation(hProcess, hModule, &moduleInfo, sizeof(MODULEINFO));
+    return moduleInfo;
 }
