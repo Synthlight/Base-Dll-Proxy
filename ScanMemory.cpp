@@ -86,8 +86,16 @@ std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::ve
 
 std::vector<std::string> StringToVector(const std::string& bytesToFind) {
     std::vector<std::string> byteStringArray;
-    auto                     stringStream = std::istringstream(bytesToFind);
+    std::istringstream       stringStream;
     std::string              s;
+
+    if (bytesToFind.find('*') != std::string::npos) {
+        auto str = bytesToFind;
+        std::replace(str.begin(), str.end(), '*', '?');
+        stringStream = std::istringstream(str);
+    } else {
+        stringStream = std::istringstream(bytesToFind);
+    }
 
     while (std::getline(stringStream, s, ' ')) {
         byteStringArray.push_back(s);
