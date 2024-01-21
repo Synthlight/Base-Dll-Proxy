@@ -24,7 +24,8 @@ extern const std::vector<BYTE> SEVEN_BYTE_NOP;
 extern const std::vector<BYTE> EIGHT_BYTE_NOP;
 extern const std::vector<BYTE> NINE_BYTE_NOP;
 
-std::vector<BYTE>        IntToByteArray(const long long value, const int size);
-std::vector<BYTE>        CreateCallBytesToAddress(const BYTE* targetAddress);
+std::vector<BYTE>        IntToByteArray(const UINT64 value, const int size);
+std::vector<BYTE>        IntToByteArray(const UINT32 value, const int size);
+std::vector<BYTE>        CreateCallBytesToAddress(const BYTE* targetAddress, const BYTE* fromAddress);
 std::vector<std::string> SplitStringBySpace(const std::string& input);
 std::vector<BYTE>        StringToByteVector(const std::string& input);
