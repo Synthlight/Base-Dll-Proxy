@@ -34,17 +34,17 @@ std::vector<const BYTE*> AoBSwap::ScanAndPatch() const {
     return addressesFound;
 }
 
-std::vector<BYTE> IntToByteArray(const UINT64 value, const int size) {
+std::vector<BYTE> IntToByteArray(const UINT64 value) {
     auto buffer = std::vector<BYTE>(sizeof(UINT64));
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < sizeof(UINT64); i++) {
         buffer[i] = value >> 8 * i & 0xFF;
     }
     return buffer;
 }
 
-std::vector<BYTE> IntToByteArray(const UINT32 value, const int size) {
+std::vector<BYTE> IntToByteArray(const UINT32 value) {
     auto buffer = std::vector<BYTE>(sizeof(UINT32));
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < sizeof(UINT32); i++) {
         buffer[i] = value >> 8 * i & 0xFF;
     }
     return buffer;
@@ -56,7 +56,7 @@ std::vector<BYTE> CreateCallBytesToAddress(const BYTE* targetAddress, const BYTE
     if (std::abs(offset) < INT32_MAX) {
         // Small enough to do a relative jump.
         auto callBytes = std::vector<BYTE>{0xE8};
-        for (auto byte : IntToByteArray(static_cast<UINT32>(offset), 8)) {
+        for (auto byte : IntToByteArray(static_cast<UINT32>(offset))) {
             callBytes.push_back(byte);
         }
         return callBytes;
@@ -64,7 +64,7 @@ std::vector<BYTE> CreateCallBytesToAddress(const BYTE* targetAddress, const BYTE
 
     // Create `call` bytes. e.g. FF15 02000000 EB08 30A08D2100000000 - call 218DA030
     auto replacementBytes = std::vector<BYTE>{0xFF, 0x15, 0x02, 0x00, 0x00, 0x00, 0xEB, 0x08}; // x64 long call, add target address to the end (8 bytes).
-    for (auto byte : IntToByteArray(reinterpret_cast<UINT64>(targetAddress), 8)) {
+    for (auto byte : IntToByteArray(reinterpret_cast<UINT64>(targetAddress))) {
         replacementBytes.push_back(byte);
     }
     return replacementBytes;
