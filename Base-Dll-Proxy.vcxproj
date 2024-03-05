@@ -167,7 +167,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="proxy-router.h" />
     <ClInclude Include="ScanMemory.h" />
-    <ClInclude Include="proxy.h" />
+    <ClInclude Include="Proxy.h" />
     <ClCompile Include="AoBSwap.cpp" />
     <ClCompile Include="base-dllmain.cpp" />
     <ClCompile Include="Logger.cpp" />
@@ -178,7 +178,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ScanMemory.cpp" />
-    <ClCompile Include="proxy.cpp" />
+    <ClCompile Include="Proxy.cpp" />
     <ClInclude Include="Util.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

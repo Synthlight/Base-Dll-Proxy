@@ -2,27 +2,38 @@
 
 #include "Logger.h"
 
-#include "proxy.h"
+#include "Proxy.h"
 
-const char* targetDll = "version.dll";
-HMODULE     versionHMod;
+HMODULE versionHMod;
 
-void Attach() {
-    char sysPath[MAX_PATH];
-    GetSystemDirectory(sysPath, MAX_PATH);
-    strcat_s(sysPath, "\\");
-    strcat_s(sysPath, targetDll);
+void IProxy::Attach() {
+    LOG("Attaching to process.");
 
-    versionHMod = LoadLibrary(sysPath);
+    const auto name = GetTargetDllName();
+    const auto path = GetTargetDllPath();
+
+    LOG("Loading original dll: " << name << "\n    From: " << path);
+
+    versionHMod = LoadLibrary(path.c_str());
     if (versionHMod == nullptr) {
-        LOG("Unable to load base " << targetDll << " dll.");
+        LOG("Unable to load base " << name << " dll.");
         return;
     }
 
-    LOG("Orig " << targetDll << " loaded.");
+    LOG("Orig " << name << " loaded.");
 }
 
-void Detach() {
-    LOG("Unloading orig " << targetDll << ".");
+void IProxy::Detach() {
+    const auto name = GetTargetDllName();
+    LOG("Unloading orig " << name << ".");
     FreeLibrary(versionHMod);
+}
+
+std::string IProxy::GetDllPathFromSysPath(const std::string& dllName) {
+    char sysPath[MAX_PATH];
+    GetSystemDirectory(sysPath, MAX_PATH);
+    strcat_s(sysPath, "\\");
+    strcat_s(sysPath, dllName.c_str());
+
+    return sysPath;
 }

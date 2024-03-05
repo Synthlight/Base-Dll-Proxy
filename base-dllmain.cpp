@@ -1,31 +1,33 @@
 #include "pch.h"
 
 #include "Logger.h"
-#include "proxy.h"
 
 #include "base-dllmain.h"
 
 std::thread newThread;
 
-BOOL APIENTRY BaseDllMain(HMODULE hModule, const DWORD ulReasonForCall, LPVOID lpReserved) {
+bool loaded = false;
+
+BOOL APIENTRY BaseDllMain(HMODULE hModule, const DWORD ulReasonForCall, LPVOID lpReserved, IProxy& proxy) {
     switch (ulReasonForCall) {
-    case DLL_PROCESS_ATTACH:
-        //case DLL_THREAD_ATTACH:
-        //DisableThreadLibraryCalls(hModule);
-        Attach();
+        case DLL_PROCESS_ATTACH: if (loaded) break;
+            LOG("Attaching proxy.");
+            proxy.Attach();
+            newThread = std::thread([] {
+                Sleep(5000);
+                DoInjection();
+            });
+            loaded = true;
 
-        newThread = std::thread([] {
-            Sleep(5000);
-            DoInjection();
-        });
-
-        break;
-    //case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH: Detach();
-        newThread.join();
-        out.close();
-        break;
-    default: ;
+            break;
+        case DLL_PROCESS_DETACH: if (!loaded) break;
+            LOG("Detaching proxy.");
+            proxy.Detach();
+            newThread.join();
+            out.close();
+            loaded = false;
+            break;
+        default: break;
     }
     return TRUE;
 }
