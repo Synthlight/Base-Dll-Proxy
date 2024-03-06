@@ -1,6 +1,6 @@
 #pragma once
 
-class IProxy {
+class IProxy { // NOLINT(cppcoreguidelines-special-member-functions)
 public:
     virtual ~IProxy() = default;
 

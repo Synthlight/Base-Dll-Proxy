@@ -159,7 +159,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AllocateMemory.cpp" />
     <ClCompile Include="Util.cpp" />
+    <ClInclude Include="AllocateMemory.h" />
     <ClInclude Include="AoBSwap.h" />
     <ClInclude Include="base-dllmain.h" />
     <ClInclude Include="framework.h" />
