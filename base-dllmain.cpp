@@ -8,13 +8,15 @@ std::thread newThread;
 
 bool loaded = false;
 
-BOOL APIENTRY BaseDllMain(HMODULE hModule, const DWORD ulReasonForCall, LPVOID lpReserved, IProxy& proxy) {
+BOOL APIENTRY BaseDllMain(HMODULE hModule, const DWORD ulReasonForCall, LPVOID lpReserved, IProxy& proxy, int sleepTime) {
     switch (ulReasonForCall) {
         case DLL_PROCESS_ATTACH: if (loaded) break;
             LOG("Attaching proxy.");
             proxy.Attach();
-            newThread = std::thread([] {
-                Sleep(5000);
+            newThread = std::thread([sleepTime] {
+                if (sleepTime > 0) {
+                    Sleep(sleepTime);
+                }
                 DoInjection();
             });
             loaded = true;
