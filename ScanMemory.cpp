@@ -25,7 +25,7 @@ const BYTE* DoSearch<std::string>(const BYTE* begin, const BYTE* end, const std:
 }
 
 template <typename T>
-std::vector<const BYTE*> ScanMemory(void* addressLow, const std::size_t scanLength, const std::vector<T>& toFind, const bool backwards = false) {
+std::vector<const BYTE*> ScanMemory(void* addressLow, const std::size_t scanLength, const std::vector<T>& toFind, const bool backwards = false, const bool shortCircuit = false) {
     const auto               toFindAddress = reinterpret_cast<const INT_PTR>(toFind.data());
     std::vector<const BYTE*> addressesFound;
 
@@ -51,6 +51,7 @@ std::vector<const BYTE*> ScanMemory(void* addressLow, const std::size_t scanLeng
                     LOG("Skipping match that is the address of our search array: " << std::uppercase << std::hex << foundPtr);
                 } else {
                     addressesFound.push_back(found);
+                    if (shortCircuit) return addressesFound;
                 }
                 found = DoSearch(found + 1, end, toFind);
             }
@@ -64,11 +65,11 @@ std::vector<const BYTE*> ScanMemory(void* addressLow, const std::size_t scanLeng
 }
 
 template <typename T>
-std::vector<const BYTE*> ScanMemoryT(const std::string& moduleName, const std::vector<T>& bytesToFind, const bool fullScan = false) {
+std::vector<const BYTE*> ScanMemoryT(const std::string& moduleName, const std::vector<T>& bytesToFind, const bool fullScan = false, const bool shortCircuit = false) {
     if (fullScan) {
         constexpr auto scanLength = 0x7FFFFFFFFFFFFFFF;
         LOG("Doing a full scan from: 0->" << scanLength);
-        return ScanMemory(0, scanLength, bytesToFind);
+        return ScanMemory(0, scanLength, bytesToFind, false, shortCircuit);
     } else {
         auto base = GetModuleHandle(moduleName.c_str());
         if (base == nullptr) return {};
@@ -76,24 +77,24 @@ std::vector<const BYTE*> ScanMemoryT(const std::string& moduleName, const std::v
         MODULEINFO moduleInfo{};
         GetModuleInformation(GetCurrentProcess(), base, std::addressof(moduleInfo), sizeof(moduleInfo));
 
-        return ScanMemory(base, moduleInfo.SizeOfImage, bytesToFind);
+        return ScanMemory(base, moduleInfo.SizeOfImage, bytesToFind, false, shortCircuit);
     }
 }
 
-std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<BYTE>& bytesToFind, const bool fullScan) {
-    return ScanMemoryT(moduleName, bytesToFind, fullScan);
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<BYTE>& bytesToFind, const bool fullScan, const bool shortCircuit) {
+    return ScanMemoryT(moduleName, bytesToFind, fullScan, shortCircuit);
 }
 
-std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<BYTE>&& bytesToFind, const bool fullScan) {
-    return ScanMemoryT(moduleName, bytesToFind, fullScan);
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<BYTE>&& bytesToFind, const bool fullScan, const bool shortCircuit) {
+    return ScanMemoryT(moduleName, bytesToFind, fullScan, shortCircuit);
 }
 
-std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<std::string>& bytesToFind, const bool fullScan) {
-    return ScanMemoryT(moduleName, bytesToFind, fullScan);
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<std::string>& bytesToFind, const bool fullScan, const bool shortCircuit) {
+    return ScanMemoryT(moduleName, bytesToFind, fullScan, shortCircuit);
 }
 
-std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<std::string>&& bytesToFind, const bool fullScan) {
-    return ScanMemoryT(moduleName, bytesToFind, fullScan);
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::vector<std::string>&& bytesToFind, const bool fullScan, const bool shortCircuit) {
+    return ScanMemoryT(moduleName, bytesToFind, fullScan, shortCircuit);
 }
 
 std::vector<std::string> StringToVector(const std::string& bytesToFind) {
@@ -116,12 +117,12 @@ std::vector<std::string> StringToVector(const std::string& bytesToFind) {
     return byteStringArray;
 }
 
-std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::string& bytesToFind, const bool fullScan) {
-    return ScanMemoryT(moduleName, StringToVector(bytesToFind), fullScan);
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::string& bytesToFind, const bool fullScan, const bool shortCircuit) {
+    return ScanMemoryT(moduleName, StringToVector(bytesToFind), fullScan, shortCircuit);
 }
 
-std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::string&& bytesToFind, const bool fullScan) {
-    return ScanMemoryT(moduleName, StringToVector(bytesToFind), fullScan);
+std::vector<const BYTE*> ScanMemory(const std::string& moduleName, const std::string&& bytesToFind, const bool fullScan, const bool shortCircuit) {
+    return ScanMemoryT(moduleName, StringToVector(bytesToFind), fullScan, shortCircuit);
 }
 
 void DoWithProtect(BYTE* address, const SIZE_T size, const std::function<void()>& memActions) {
