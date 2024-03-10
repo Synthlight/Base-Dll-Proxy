@@ -25,7 +25,7 @@ void PrintNBytes(const BYTE* address, const int length) {
         if (i > 0) out << ",";
         out << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << static_cast<const UINT32>(*(address + i));
     }
-    out << std::endl; // NOLINT(performance-avoid-endl)
+    out << '\n';
 }
 
 std::string BytesToString(const std::vector<BYTE>& bytes) {
@@ -48,7 +48,7 @@ bool EndsWith(std::string const& value, std::string const& ending) {
 
 UINT32 GetGameVersion() {
     const auto  path      = GetExePath();
-    DWORD       verHandle = NULL;
+    DWORD       verHandle = 0;
     UINT        size      = 0;
     LPBYTE      lpBuffer  = nullptr;
     const DWORD verSize   = GetFileVersionInfoSize(path.c_str(), &verHandle);
@@ -56,7 +56,7 @@ UINT32 GetGameVersion() {
     if (verSize != NULL) {
         const auto verData = new char[verSize];
 
-        if (GetFileVersionInfo(path.c_str(), verHandle, verSize, verData)) {
+        if (GetFileVersionInfo(path.c_str(), 0, verSize, verData)) {
             if (VerQueryValue(verData, "\\", reinterpret_cast<void**>(&lpBuffer), &size)) {
                 if (size) {
                     const auto verInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(lpBuffer);

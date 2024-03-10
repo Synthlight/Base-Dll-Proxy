@@ -10,7 +10,8 @@ bool loaded = false;
 
 BOOL APIENTRY BaseDllMain(HMODULE hModule, const DWORD ulReasonForCall, LPVOID lpReserved, IProxy& proxy, int sleepTime) {
     switch (ulReasonForCall) {
-        case DLL_PROCESS_ATTACH: if (loaded) break;
+        case DLL_PROCESS_ATTACH: // Makes auto format behave.
+            if (loaded) break;
             LOG("Attaching proxy.");
             proxy.Attach();
             newThread = std::thread([sleepTime] {
@@ -22,7 +23,8 @@ BOOL APIENTRY BaseDllMain(HMODULE hModule, const DWORD ulReasonForCall, LPVOID l
             loaded = true;
 
             break;
-        case DLL_PROCESS_DETACH: if (!loaded) break;
+        case DLL_PROCESS_DETACH: // Makes auto format behave.
+            if (!loaded) break;
             LOG("Detaching proxy.");
             proxy.Detach();
             newThread.join();

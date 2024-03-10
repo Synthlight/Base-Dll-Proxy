@@ -4,6 +4,10 @@
 
 #include "Util.h"
 
+bool          logSetup = false;
+std::ofstream out;
+std::ostream  outClearFormatHolder(nullptr);
+
 std::string GetCurrentDateTime(const std::string& s) {
     const time_t now = time(nullptr);
     tm           time;
@@ -55,6 +59,15 @@ std::string GetLogPathAsCurrentDllDotLog() {
     return pathStr;
 }
 
-std::ofstream SetupLog(const std::string& path) {
-    return std::ofstream(path.c_str(), std::ios_base::out | std::ios_base::trunc);
+void SetupLog(const std::string& path) {
+    if (logSetup) return;
+
+    out = std::ofstream(path.c_str(), std::ios_base::out | std::ios_base::trunc);
+    outClearFormatHolder.copyfmt(out);
+    LOG("Initializing.");
+    logSetup = true;
+}
+
+void ClearLogFlags() {
+    out.copyfmt(outClearFormatHolder);
 }
