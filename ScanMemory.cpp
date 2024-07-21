@@ -1,8 +1,9 @@
 #include "pch.h"
 
-#include "Logger.h"
-
 #include "ScanMemory.h"
+
+#include "Common.h"
+#include "Logger.h"
 
 const std::string wildcard = "??";
 
@@ -67,9 +68,8 @@ std::vector<const BYTE*> ScanMemory(void* addressLow, const std::size_t scanLeng
 template <typename T>
 std::vector<const BYTE*> ScanMemoryT(const std::string& moduleName, const std::vector<T>& bytesToFind, const bool fullScan = false, const bool shortCircuit = false) {
     if (fullScan) {
-        constexpr auto scanLength = 0x7FFFFFFFFFFFFFFF;
-        LOG("Doing a full scan from: 0->" << std::uppercase << std::hex << scanLength);
-        return ScanMemory(0, scanLength, bytesToFind, false, shortCircuit);
+        LOG("Doing a full scan from: 0->" << std::uppercase << std::hex << LARGEST_ADDRESS);
+        return ScanMemory(0, LARGEST_ADDRESS, bytesToFind, false, shortCircuit);
     } else {
         auto base = GetModuleHandle(moduleName.c_str());
         if (base == nullptr) return {};

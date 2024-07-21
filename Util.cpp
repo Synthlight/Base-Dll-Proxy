@@ -2,6 +2,7 @@
 
 #include "Util.h"
 
+#include "Common.h"
 #include "Logger.h"
 
 std::string GetExePath() {
@@ -31,7 +32,7 @@ void PrintNBytes(const BYTE* address, const int length) {
 std::string BytesToString(const std::vector<BYTE>& bytes) {
     auto outStream = std::ostringstream();
 
-    for (UINT64 i = 0; i < bytes.size(); i++) {
+    for (PTR_SIZE i = 0; i < bytes.size(); i++) {
         if (i > 0) outStream << ",";
         outStream << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << static_cast<const UINT32>(bytes[i]);
     }
