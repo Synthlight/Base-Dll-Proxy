@@ -44,6 +44,19 @@ std::vector<const BYTE*> ScanMemory(void* addressLow, const std::size_t scanLeng
         if (mbi.State == MEM_COMMIT && mbi.Protect & pageMask && !(mbi.Protect & PAGE_GUARD)) {
             auto begin = static_cast<const BYTE*>(mbi.BaseAddress);
             auto end   = begin + mbi.RegionSize;
+
+            // Fixes alignment.
+            // If the start address doesn't align to a page, it may theoretically find a match before the start. This fixes that.
+            if (!backwards && startAddress > begin) {
+                const auto diff = startAddress - begin;
+                end -= diff;
+                begin = startAddress;
+            } else if (backwards && begin > startAddress) {
+                const auto diff = begin - startAddress;
+                end -= diff;
+                begin = startAddress;
+            }
+
             auto found = DoSearch(begin, end, toFind);
 
             while (found != end) {
