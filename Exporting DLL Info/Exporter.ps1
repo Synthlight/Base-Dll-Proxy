@@ -18,7 +18,7 @@ if(-not $DllLocation.EndsWith(".dll"))
     Write-Host "$DllLocation"
 }
 
-$DumpPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.39.33519\bin\Hostx86\x86\dumpbin.exe"
+$DumpPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\bin\Hostx64\x64\dumpbin.exe"
 
 #Strip filepath and extension for later use
 $DllName = (Get-Item "$DllLocation").BaseName
