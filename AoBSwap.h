@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Common.h"
+
 class AoBSwap {
     std::vector<BYTE> bytesToFind_;
     std::vector<BYTE> bytesToReplace_;
@@ -24,8 +26,10 @@ extern const std::vector<BYTE> SEVEN_BYTE_NOP;
 extern const std::vector<BYTE> EIGHT_BYTE_NOP;
 extern const std::vector<BYTE> NINE_BYTE_NOP;
 
-std::vector<BYTE>        IntToByteArray(const UINT64 value);
-std::vector<BYTE>        IntToByteArray(const UINT32 value);
+std::vector<BYTE>        IntToByteArray(UINT64 value);
+std::vector<BYTE>        IntToByteArray(UINT32 value);
 std::vector<BYTE>        CreateCallBytesToAddress(const BYTE* targetAddress, const BYTE* fromAddress);
 std::vector<std::string> SplitStringBySpace(const std::string& input);
 std::vector<BYTE>        StringToByteVector(const std::string& input);
+
+bool DoSimplePatch(const std::string& moduleName, PTR_SIZE moduleAddress, const std::string& scanName, const std::string& scanBytes, const std::vector<BYTE>& newMemBytes);

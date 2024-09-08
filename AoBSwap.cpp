@@ -1,8 +1,10 @@
 #include "pch.h"
 
-#include "ScanMemory.h"
-
 #include "AoBSwap.h"
+
+#include "Logger.h"
+#include "ScanMemory.h"
+#include "Util.h"
 
 const std::vector<BYTE> ONE_BYTE_NOP   = StringToByteVector("90");
 const std::vector<BYTE> TWO_BYTE_NOP   = StringToByteVector("66 90");
@@ -88,4 +90,30 @@ std::vector<BYTE> StringToByteVector(const std::string& input) {
         bytes.push_back(static_cast<BYTE>(std::stoul(s, nullptr, 16)));
     }
     return bytes;
+}
+
+bool DoSimplePatch(const std::string& moduleName, const PTR_SIZE moduleAddress, const std::string& scanName, const std::string& scanBytes, const std::vector<BYTE>& newMemBytes) {
+    LOG("");
+    LOG("Scanning for " << scanName << " bytes.");
+
+    const auto addresses = ScanMemory(moduleName, scanBytes, false, true);
+    LOG("Found " << addresses.size() << " match(es).");
+
+    if (addresses.empty()) {
+        LOG("AoB scan returned no results, aborting.");
+        return false;
+    }
+
+    const auto& injectAddress = addresses[0];
+    const auto  addressBase   = reinterpret_cast<const PTR_SIZE>(injectAddress);
+
+    LOG("Inject address: " << std::uppercase << std::hex << addressBase << " (" << moduleName << " + " << addressBase - moduleAddress << ")");
+
+    LOG("New mem bytes: " << BytesToString(newMemBytes));
+
+    DoWithProtect(const_cast<BYTE*>(injectAddress), newMemBytes.size(), [injectAddress, newMemBytes] {
+        memcpy(const_cast<BYTE*>(injectAddress), newMemBytes.data(), newMemBytes.size()); // NOLINT(performance-no-int-to-ptr)
+    });
+
+    return true;
 }
