@@ -6,6 +6,7 @@
 #include "ScanMemory.h"
 #include "Util.h"
 
+const std::vector<BYTE> RETURN_OP      = StringToByteVector("C3");
 const std::vector<BYTE> ONE_BYTE_NOP   = StringToByteVector("90");
 const std::vector<BYTE> TWO_BYTE_NOP   = StringToByteVector("66 90");
 const std::vector<BYTE> THREE_BYTE_NOP = StringToByteVector("0F 1F 00");

@@ -16,6 +16,7 @@ public:
     std::vector<const BYTE*> ScanAndPatch() const;
 };
 
+extern const std::vector<BYTE> RETURN_OP;
 extern const std::vector<BYTE> ONE_BYTE_NOP;
 extern const std::vector<BYTE> TWO_BYTE_NOP;
 extern const std::vector<BYTE> THREE_BYTE_NOP;
