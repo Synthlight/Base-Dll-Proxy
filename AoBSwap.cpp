@@ -118,3 +118,49 @@ bool DoSimplePatch(const std::string& moduleName, const PTR_SIZE moduleAddress, 
 
     return true;
 }
+
+bool DoInjectPatch(const std::string& moduleName, PTR_SIZE moduleAddress, const std::string& scanName, const std::string& scanBytes, const PTR_SIZE originalOpSize, AllocateMemory* allocator, const std::vector<BYTE>& newMemBytes) {
+    LOG("");
+    LOG("Scanning for " << scanName << " bytes.");
+
+    const auto addresses = ScanMemory(moduleName, scanBytes, false, true);
+    LOG("Found " << addresses.size() << " match(es).");
+
+    if (addresses.empty()) {
+        LOG("AoB scan returned no results, aborting.");
+        return false;
+    }
+
+    const auto& injectAddress = addresses[0];
+    const auto  addressBase   = reinterpret_cast<const PTR_SIZE>(injectAddress);
+
+    LOG("Inject address: " << std::uppercase << std::hex << addressBase << " (" << moduleName << " + " << addressBase - moduleAddress << ")");
+
+    LOG("New mem bytes: " << BytesToString(newMemBytes));
+
+    const auto newMemStart = allocator->ReserveSpaceInAllocatedNewMem(newMemBytes.size()); // NOLINT(performance-no-int-to-ptr)
+    LOG("New mem address: " << std::uppercase << std::hex << reinterpret_cast<const UINT64>(newMemStart));
+    if (newMemStart == nullptr) {
+        LOG("Error: New mem address is 0, aborting.");
+        return false;
+    }
+    memcpy(newMemStart, newMemBytes.data(), newMemBytes.size());
+
+    // Create a 'call' to inject to jump to our code.
+    auto callBytes = CreateCallBytesToAddress(static_cast<const BYTE*>(newMemStart), injectAddress);
+    if (callBytes.size() > originalOpSize) {
+        LOG("Error: Generated call bytes are too long, aborting.");
+        LOG("Call bytes: " << BytesToString(callBytes));
+        return false;
+    }
+    while (callBytes.size() < originalOpSize) {
+        callBytes.push_back(0x90); // nop
+    }
+
+    DoWithProtect(const_cast<BYTE*>(injectAddress), callBytes.size(), [injectAddress, callBytes] {
+        memcpy(const_cast<BYTE*>(injectAddress), callBytes.data(), callBytes.size()); // NOLINT(performance-no-int-to-ptr)
+    });
+    LOG("Wrote call to new mem: " << BytesToString(callBytes));
+
+    return true;
+}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AllocateMemory.h"
 #include "Common.h"
 
 class AoBSwap {
@@ -34,3 +35,4 @@ std::vector<std::string> SplitStringBySpace(const std::string& input);
 std::vector<BYTE>        StringToByteVector(const std::string& input);
 
 bool DoSimplePatch(const std::string& moduleName, PTR_SIZE moduleAddress, const std::string& scanName, const std::string& scanBytes, const std::vector<BYTE>& newMemBytes);
+bool DoInjectPatch(const std::string& moduleName, PTR_SIZE moduleAddress, const std::string& scanName, const std::string& scanBytes, const PTR_SIZE originalOpSize, AllocateMemory* allocator, const std::vector<BYTE>& newMemBytes);
