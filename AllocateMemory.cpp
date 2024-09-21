@@ -7,6 +7,8 @@
 #include "Util.h"
 
 bool AllocateMemory::AllocateGlobalAddresses(const std::string& moduleName, const PTR_SIZE moduleAddress, const PTR_SIZE allocatedNewMemSize) {
+    lock.lock();
+
     allocatedSize = allocatedNewMemSize;
 
     // First allocate a block of mem we can write to for injection.
@@ -16,6 +18,7 @@ bool AllocateMemory::AllocateGlobalAddresses(const std::string& moduleName, cons
     allocatedNewMemAddress = VirtualAlloc(reinterpret_cast<void*>(freeSpaceStartAddress), allocatedNewMemSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE); // NOLINT(performance-no-int-to-ptr)
     if (allocatedNewMemAddress == nullptr) {
         LOG("Error allocating `allocatedNewMemAddress`: \"" << GetLastErrorAsString() << "\", aborting.");
+        lock.unlock();
         return false;
     }
     LOG("allocatedNewMemAddress: " << std::uppercase << std::hex << reinterpret_cast<const PTR_SIZE>(allocatedNewMemAddress));
@@ -24,17 +27,28 @@ bool AllocateMemory::AllocateGlobalAddresses(const std::string& moduleName, cons
     // Make it writable by all. Without this the game crashes because it can't `mov` into the space we allocate.
     VirtualProtect(allocatedNewMemAddress, allocatedNewMemSize, PAGE_EXECUTE_READWRITE);
 
+    lock.unlock();
+
     return true;
 }
 
 void* AllocateMemory::ReserveSpaceInAllocatedNewMem(const PTR_SIZE size) {
+    lock.lock();
+
     const auto reservationAddress = reinterpret_cast<void*>(freeSpaceStartAddress); // NOLINT(performance-no-int-to-ptr)
     freeSpaceStartAddress += size;
+
+    lock.unlock();
+
     return reservationAddress;
 }
 
 AllocateMemory::~AllocateMemory() {
+    lock.lock();
+
     if (allocatedNewMemAddress != nullptr) {
         VirtualFree(allocatedNewMemAddress, allocatedSize, MEM_COMMIT | MEM_RESERVE);
     }
+
+    lock.unlock();
 }

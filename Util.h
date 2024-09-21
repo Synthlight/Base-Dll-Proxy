@@ -17,3 +17,8 @@ UINT32 GetGameVersion();
 std::string GetLastErrorAsString();
 
 MODULEINFO GetModuleInfo(_In_ HANDLE hProcess, _In_ HMODULE hModule);
+
+inline bool DoesFileExist(const std::string& name) {
+    struct stat buffer;
+    return stat(name.c_str(), &buffer) == 0;
+}

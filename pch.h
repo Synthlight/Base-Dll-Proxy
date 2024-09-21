@@ -10,11 +10,15 @@
 #include <algorithm>
 #include <fstream>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <iomanip>
+#include <mutex>
 #include <psapi.h>
 #include <sstream>
 #include <stdexcept>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string>
 #include <strsafe.h>
 #include <tchar.h>

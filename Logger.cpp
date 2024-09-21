@@ -5,6 +5,7 @@
 #include "Util.h"
 
 bool          logSetup = false;
+std::mutex    loggerLock;
 std::ofstream out;
 std::ostream  outClearFormatHolder(nullptr);
 
@@ -13,12 +14,12 @@ std::string GetCurrentDateTime(const std::string& s) {
     tm           time;
     char         buf[80] = {};
 
-    localtime_s(&time, &now);
+    localtime_s(&time, &now); // NOLINT(cert-err33-c)
 
     if (s == "now")
-        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &time);
+        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &time); // NOLINT(cert-err33-c)
     else if (s == "date")
-        strftime(buf, sizeof(buf), "%Y-%m-%d", &time);
+        strftime(buf, sizeof(buf), "%Y-%m-%d", &time); // NOLINT(cert-err33-c)
 
     return {buf};
 };
@@ -70,4 +71,56 @@ void SetupLog(const std::string& path) {
 
 void ClearLogFlags() {
     out.copyfmt(outClearFormatHolder);
+}
+
+LogBufferImpl::LogBufferImpl() {
+    char path[MAX_PATH];
+    tmpnam_s(path, MAX_PATH); // NOLINT(cert-err33-c)
+    tempFileName = std::string(path);
+    tempOut      = new std::ofstream(tempFileName.c_str(), std::ios_base::out | std::ios_base::trunc);
+
+    tempOutClearFormatHolder = new std::ostream(nullptr);
+    tempOutClearFormatHolder->copyfmt(*tempOut);
+
+    setup = true;
+}
+
+void LogBufferImpl::ClearLogFlags() {
+    tempOut->copyfmt(*tempOutClearFormatHolder);
+}
+
+void LogBufferImpl::CloseAndCopyToStream(std::ofstream& externalOut) {
+    if (setup) Cleanup();
+
+    std::ifstream input;
+    input.open(tempFileName, std::ios::in);
+    externalOut << input.rdbuf();
+    input.close();
+}
+
+void LogBufferImpl::Cleanup() {
+    if (!setup) return;
+
+    tempOut->close();
+    delete tempOut;
+    delete tempOutClearFormatHolder;
+    setup = false;
+}
+
+void LogBufferImpl::DeleteTempFile() {
+    if (setup) Cleanup();
+
+    if (DoesFileExist(tempFileName)) {
+        std::remove(tempFileName.c_str()); // NOLINT(cert-err33-c)
+        fileRemoved = true;
+    }
+}
+
+LogBufferImpl::~LogBufferImpl() {
+    LogBufferImpl::Cleanup();
+    LogBufferImpl::DeleteTempFile();
+}
+
+LogBufferWrapper::LogBufferWrapper(std::ofstream& externalOut) {
+    tempOut = &externalOut;
 }

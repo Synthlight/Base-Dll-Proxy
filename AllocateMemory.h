@@ -11,10 +11,12 @@
     }
  */
 class AllocateMemory final { // NOLINT(cppcoreguidelines-special-member-functions)
+    std::mutex lock;
+
 public:
-    void*  allocatedNewMemAddress;
-    PTR_SIZE allocatedSize;
-    PTR_SIZE freeSpaceStartAddress; // Will be added to as we use the allocated space, but will technically be allocated 'not free' mem.
+    void*    allocatedNewMemAddress = nullptr;
+    PTR_SIZE allocatedSize          = 0;
+    PTR_SIZE freeSpaceStartAddress  = 0; // Will be added to as we use the allocated space, but will technically be allocated 'not free' mem.
 
     AllocateMemory() = default;
 
@@ -22,12 +24,12 @@ public:
      * Allocates space near the target address. Must be called before `ReserveSpaceInAllocatedNewMem`!
      * NEVER CALL MORE THAN ONCE!
      */
-    bool AllocateGlobalAddresses(const std::string& moduleName, const PTR_SIZE moduleAddress, const PTR_SIZE allocatedNewMemSize = 1024);
+    bool AllocateGlobalAddresses(const std::string& moduleName, PTR_SIZE moduleAddress, PTR_SIZE allocatedNewMemSize = 1024);
 
     /**
      * 'Gives' chunks of the allocated space to the requester. Essentially just gives the pointer needed and shifts the unused ptr address to
      */
-    void* ReserveSpaceInAllocatedNewMem(const PTR_SIZE size);
+    void* ReserveSpaceInAllocatedNewMem(PTR_SIZE size);
 
     ~AllocateMemory();
 };
