@@ -95,6 +95,7 @@ void LogBufferImpl::CloseAndCopyToStream(std::ofstream& externalOut) {
     std::ifstream input;
     input.open(tempFileName, std::ios::in);
     externalOut << input.rdbuf();
+    externalOut.flush();
     input.close();
 }
 

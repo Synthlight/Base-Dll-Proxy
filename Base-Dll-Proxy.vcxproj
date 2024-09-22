@@ -160,6 +160,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AllocateMemory.cpp" />
+    <ClCompile Include="PatchThreading.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClInclude Include="AllocateMemory.h" />
     <ClInclude Include="AoBSwap.h" />
@@ -167,6 +168,7 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Logger.h" />
+    <ClInclude Include="PatchThreading.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="proxy-router-dinput8.h" />
     <ClInclude Include="proxy-router-version.h" />
