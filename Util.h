@@ -22,3 +22,6 @@ inline bool DoesFileExist(const std::string& name) {
     struct stat buffer;
     return stat(name.c_str(), &buffer) == 0;
 }
+
+#define PRINT_RELATIVE_ADDRESS(moduleName, moduleAddress, address) std::uppercase << std::hex << reinterpret_cast<const PTR_SIZE>(address) << " (" << (moduleName) << " + " << reinterpret_cast<const PTR_SIZE>(address) - (moduleAddress) << ")"
+#define PRINT_RELATIVE_ADDRESS_NEG(moduleName, moduleAddress, address) std::uppercase << std::hex << reinterpret_cast<const PTR_SIZE>(address) << " (" << (moduleName) << " - " << (moduleAddress) - reinterpret_cast<const PTR_SIZE>(address) << ")"

@@ -62,7 +62,7 @@ std::vector<const BYTE*> ScanMemoryInternal(const BYTE* startAddress, const std:
             while (found != end) {
                 const auto foundPtr = reinterpret_cast<const INT_PTR>(found);
                 if (toFindAddress == foundPtr) {
-                    LOG_BUFFER("Skipping match that is the address of our search array: " << std::uppercase << std::hex << foundPtr)
+                    LOG_BUFFER("Skipping match that is the address of our search array: " << std::uppercase << std::hex << foundPtr);
                 } else {
                     addressesFound.push_back(found);
                     if (shortCircuit) return addressesFound;
@@ -81,12 +81,12 @@ std::vector<const BYTE*> ScanMemoryInternal(const BYTE* startAddress, const std:
 template <typename T>
 std::vector<const BYTE*> ScanMemoryT(const std::string& moduleName, const std::vector<T>& bytesToFind, const bool fullScan, const bool shortCircuit, const BYTE* startAddress, LogBuffer* logBuffer) {
     if (fullScan) {
-        LOG_BUFFER("Doing a full scan from: 0->" << std::uppercase << std::hex << LARGEST_ADDRESS)
+        LOG_BUFFER("Doing a full scan from: 0->" << std::uppercase << std::hex << LARGEST_ADDRESS);
         return ScanMemoryInternal(0, LARGEST_ADDRESS, bytesToFind, false, shortCircuit, logBuffer);
     } else {
         auto base = GetModuleHandle(moduleName.c_str());
         if (base == nullptr) {
-            LOG_BUFFER("Error getting the module handle.")
+            LOG_BUFFER("Error getting the module handle.");
             return {};
         }
 
@@ -96,7 +96,7 @@ std::vector<const BYTE*> ScanMemoryT(const std::string& moduleName, const std::v
         if (startAddress != nullptr) {
             const auto moduleAddr  = reinterpret_cast<const UINT64>(base);
             const auto startOffset = reinterpret_cast<const UINT64>(startAddress) - moduleAddr;
-            LOG_BUFFER("Scanning from: +" << std::uppercase << std::hex << startOffset << " -> +" << std::uppercase << std::hex << startOffset + moduleInfo.SizeOfImage)
+            LOG_BUFFER("Scanning from: +" << std::uppercase << std::hex << startOffset << " -> +" << std::uppercase << std::hex << startOffset + moduleInfo.SizeOfImage);
             return ScanMemoryInternal(const_cast<BYTE*>(startAddress), moduleInfo.SizeOfImage - startOffset, bytesToFind, false, shortCircuit, logBuffer);
         } else {
             return ScanMemoryInternal(reinterpret_cast<BYTE*>(base), moduleInfo.SizeOfImage, bytesToFind, false, shortCircuit, logBuffer);
@@ -154,7 +154,7 @@ void DoWithProtect(BYTE* address, const SIZE_T size, const std::function<void()>
         memActions();
         VirtualProtect(address, size, oldProtect, &oldProtect);
     } else {
-        LOG_BUFFER("VirtualProtect failed.")
+        LOG_BUFFER("VirtualProtect failed.");
     }
 }
 

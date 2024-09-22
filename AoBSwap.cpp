@@ -55,10 +55,10 @@ std::vector<BYTE> IntToByteArray(const UINT32 value) {
 
 std::vector<BYTE> CreateCallBytesToAddress(const BYTE* targetAddress, const BYTE* fromAddress) {
     // First check if we're close enough to jump via an 8 byte offset.
-    const auto offset = static_cast<int>(targetAddress - (fromAddress + 5)); // +5 for the call op.
+    const auto offset = static_cast<int>(targetAddress - (fromAddress + 5)); // +5 for the `call` op.
     if (std::abs(offset) < INT32_MAX) {
-        // Small enough to do a relative jump.
-        auto callBytes = std::vector<BYTE>{0xE8};
+        // Small enough to do a relative call.
+        auto callBytes = std::vector<BYTE>{0xE8}; // call
         for (auto byte : IntToByteArray(static_cast<UINT32>(offset))) {
             callBytes.push_back(byte);
         }
@@ -71,6 +71,21 @@ std::vector<BYTE> CreateCallBytesToAddress(const BYTE* targetAddress, const BYTE
         replacementBytes.push_back(byte);
     }
     return replacementBytes;
+}
+
+std::vector<BYTE> CreateJumpBytesToAddress(const BYTE* targetAddress, const BYTE* fromAddress, LogBuffer* logBuffer) {
+    // First check if we're close enough to jump via an 8 byte offset.
+    const auto offset = static_cast<int>(targetAddress - (fromAddress + 5)); // +5 for the `jmp` op.
+    if (std::abs(offset) >= INT32_MAX) {
+        LOG_BUFFER("Unable to create a `jmp` to an offset that exceeds INT32_MAX.");
+        return {};
+    }
+    // Small enough to do a relative jump.
+    auto callBytes = std::vector<BYTE>{0xE9}; // jmp
+    for (auto byte : IntToByteArray(static_cast<UINT32>(offset))) {
+        callBytes.push_back(byte);
+    }
+    return callBytes;
 }
 
 std::vector<std::string> SplitStringBySpace(const std::string& input) {
@@ -94,73 +109,124 @@ std::vector<BYTE> StringToByteVector(const std::string& input) {
 }
 
 bool DoSimplePatch(const std::string& moduleName, const PTR_SIZE moduleAddress, const std::string& scanName, const std::string& scanBytes, const std::vector<BYTE>& newMemBytes, LogBuffer* logBuffer) {
-    LOG_BUFFER("")
-    LOG_BUFFER("Scanning for " << scanName << " bytes.")
-
-    const auto addresses = ScanMemory(moduleName, scanBytes, false, true, nullptr, logBuffer);
-    LOG_BUFFER("Found " << addresses.size() << " match(es).")
-
-    if (addresses.empty()) {
-        LOG_BUFFER("AoB scan returned no results, aborting.")
-        return false;
-    }
-
-    const auto& injectAddress = addresses[0];
-    const auto  addressBase   = reinterpret_cast<const PTR_SIZE>(injectAddress);
-
-    LOG_BUFFER("Inject address: " << std::uppercase << std::hex << addressBase << " (" << moduleName << " + " << addressBase - moduleAddress << ")")
-
-    LOG_BUFFER("New mem bytes: " << BytesToString(newMemBytes))
-
-    DoWithProtect(const_cast<BYTE*>(injectAddress), newMemBytes.size(), [injectAddress, newMemBytes] {
-        memcpy(const_cast<BYTE*>(injectAddress), newMemBytes.data(), newMemBytes.size()); // NOLINT(performance-no-int-to-ptr)
-    }, logBuffer);
-
-    return true;
+    ScanOptions scanOptions;
+    scanOptions.moduleName    = &moduleName;
+    scanOptions.moduleAddress = moduleAddress;
+    scanOptions.patchType     = PatchType::SIMPLE;
+    scanOptions.scanBytes     = scanBytes;
+    scanOptions.newMemBytes   = newMemBytes;
+    return DoPatch(scanName, scanOptions, logBuffer);
 }
 
-bool DoInjectPatch(const std::string& moduleName, PTR_SIZE moduleAddress, const std::string& scanName, const std::string& scanBytes, const PTR_SIZE originalOpSize, AllocateMemory* allocator, const std::vector<BYTE>& newMemBytes, LogBuffer* logBuffer) {
-    LOG_BUFFER("")
-    LOG_BUFFER("Scanning for " << scanName << " bytes.")
+bool DoInjectPatch(const std::string& moduleName, const PTR_SIZE moduleAddress, const std::string& scanName, const std::string& scanBytes, const PTR_SIZE originalOpSize, AllocateMemory* allocator, const std::vector<BYTE>& newMemBytes, LogBuffer* logBuffer) {
+    ScanOptions scanOptions;
+    scanOptions.moduleName     = &moduleName;
+    scanOptions.moduleAddress  = moduleAddress;
+    scanOptions.patchType      = PatchType::INJECT;
+    scanOptions.scanBytes      = scanBytes;
+    scanOptions.newMemBytes    = newMemBytes;
+    scanOptions.originalOpSize = originalOpSize;
+    scanOptions.allocator      = allocator;
+    scanOptions.returnType     = ReturnType::RETURN;
+    return DoPatch(scanName, scanOptions, logBuffer);
+}
 
-    const auto addresses = ScanMemory(moduleName, scanBytes, false, true, nullptr, logBuffer);
-    LOG_BUFFER("Found " << addresses.size() << " match(es).")
+bool DoPatchInternal(const BYTE* const& injectAddress, ScanOptions scanOptions, LogBuffer* logBuffer) {
+    LOG_BUFFER("Inject address: " << PRINT_RELATIVE_ADDRESS(*scanOptions.moduleName, scanOptions.moduleAddress, injectAddress));
+
+    LOG_BUFFER("New mem bytes: " << BytesToString(scanOptions.newMemBytes));
+
+    switch (scanOptions.patchType) {
+        case PatchType::SIMPLE: //
+            DoWithProtect(const_cast<BYTE*>(injectAddress), scanOptions.newMemBytes.size(), [injectAddress, scanOptions] {
+                memcpy(const_cast<BYTE*>(injectAddress), scanOptions.newMemBytes.data(), scanOptions.newMemBytes.size()); // NOLINT(performance-no-int-to-ptr)
+            }, logBuffer);
+            return true;
+        case PatchType::INJECT: //
+            auto allocateSize = scanOptions.newMemBytes.size();
+            switch (scanOptions.returnType) {
+                case ReturnType::RETURN: allocateSize += 1;
+                    break;
+                case ReturnType::CALL:
+                case ReturnType::JUMP: allocateSize += 5;
+                    break;
+            }
+
+            const auto newMemStart = scanOptions.allocator->ReserveSpaceInAllocatedNewMem(allocateSize); // NOLINT(performance-no-int-to-ptr)
+            LOG_BUFFER("New mem address: " << std::uppercase << std::hex << reinterpret_cast<const UINT64>(newMemStart));
+            if (newMemStart == nullptr) {
+                LOG_BUFFER("Error: New mem address is 0, aborting.");
+                return false;
+            }
+
+            if (scanOptions.returnType == ReturnType::RETURN) {
+                scanOptions.newMemBytes.push_back(0xC3); // ret
+            } else if (scanOptions.returnType == ReturnType::JUMP || scanOptions.returnType == ReturnType::CALL) {
+                const auto jumpOrCall = scanOptions.returnType == ReturnType::JUMP ? "jump" : "call";
+
+                std::vector<BYTE> returnBytes;
+                if (scanOptions.returnType == ReturnType::JUMP) {
+                    returnBytes = CreateJumpBytesToAddress(scanOptions.returnAddress, static_cast<BYTE*>(newMemStart) + scanOptions.newMemBytes.size(), logBuffer);
+                } else if (scanOptions.returnType == ReturnType::CALL) {
+                    returnBytes = CreateCallBytesToAddress(scanOptions.returnAddress, static_cast<BYTE*>(newMemStart) + scanOptions.newMemBytes.size());
+                }
+                scanOptions.newMemBytes.insert(scanOptions.newMemBytes.end(), returnBytes.begin(), returnBytes.end());
+                LOG_BUFFER("Wrote return " << jumpOrCall << " to: " << PRINT_RELATIVE_ADDRESS(*scanOptions.moduleName, scanOptions.moduleAddress, scanOptions.returnAddress));
+                LOG_BUFFER("Return " << jumpOrCall << " bytes: " << BytesToString(returnBytes));
+            }
+
+            memcpy(newMemStart, scanOptions.newMemBytes.data(), scanOptions.newMemBytes.size());
+
+            const auto jumpOrCall = scanOptions.jumpType == JumpType::JUMP ? "jump" : "call";
+
+            std::vector<BYTE> callBytes; // Create a 'call' to inject to jump to our code.
+            if (scanOptions.jumpType == JumpType::JUMP) {
+                callBytes = CreateJumpBytesToAddress(static_cast<const BYTE*>(newMemStart), injectAddress, logBuffer);
+            } else if (scanOptions.jumpType == JumpType::CALL) {
+                callBytes = CreateCallBytesToAddress(static_cast<const BYTE*>(newMemStart), injectAddress);
+            }
+            if (callBytes.size() > scanOptions.originalOpSize) {
+                LOG_BUFFER("Error: Generated " << jumpOrCall << " bytes are too long, aborting.");
+                LOG_BUFFER("Generated " << jumpOrCall << " bytes: " << BytesToString(callBytes));
+                return false;
+            }
+            while (callBytes.size() < scanOptions.originalOpSize) {
+                callBytes.push_back(0x90); // nop
+            }
+
+            DoWithProtect(const_cast<BYTE*>(injectAddress), callBytes.size(), [injectAddress, callBytes] {
+                memcpy(const_cast<BYTE*>(injectAddress), callBytes.data(), callBytes.size()); // NOLINT(performance-no-int-to-ptr)
+            }, logBuffer);
+            LOG_BUFFER("Wrote " << jumpOrCall << " to inject mem: " << BytesToString(callBytes));
+
+            return true;
+    }
+
+    return false; // Not reachable.
+}
+
+bool DoPatch(const std::string& scanName, const ScanOptions& scanOptions, LogBuffer* logBuffer) {
+    LOG_BUFFER("");
+    LOG_BUFFER("Scanning for " << scanName << " bytes.");
+
+    const auto shortCircuit = scanOptions.scanType == ScanType::SINGLE;
+    const auto addresses    = ScanMemory(*scanOptions.moduleName, scanOptions.scanBytes, false, shortCircuit, nullptr, logBuffer);
+    LOG_BUFFER("Found " << addresses.size() << " match(es).");
 
     if (addresses.empty()) {
-        LOG_BUFFER("AoB scan returned no results, aborting.")
+        LOG_BUFFER("AoB scan returned no results, aborting.");
         return false;
     }
 
-    const auto& injectAddress = addresses[0];
-    const auto  addressBase   = reinterpret_cast<const PTR_SIZE>(injectAddress);
-
-    LOG_BUFFER("Inject address: " << std::uppercase << std::hex << addressBase << " (" << moduleName << " + " << addressBase - moduleAddress << ")")
-
-    LOG_BUFFER("New mem bytes: " << BytesToString(newMemBytes))
-
-    const auto newMemStart = allocator->ReserveSpaceInAllocatedNewMem(newMemBytes.size()); // NOLINT(performance-no-int-to-ptr)
-    LOG_BUFFER("New mem address: " << std::uppercase << std::hex << reinterpret_cast<const UINT64>(newMemStart))
-    if (newMemStart == nullptr) {
-        LOG_BUFFER("Error: New mem address is 0, aborting.")
-        return false;
-    }
-    memcpy(newMemStart, newMemBytes.data(), newMemBytes.size());
-
-    // Create a 'call' to inject to jump to our code.
-    auto callBytes = CreateCallBytesToAddress(static_cast<const BYTE*>(newMemStart), injectAddress);
-    if (callBytes.size() > originalOpSize) {
-        LOG_BUFFER("Error: Generated call bytes are too long, aborting.")
-        LOG_BUFFER("Call bytes: " << BytesToString(callBytes))
-        return false;
-    }
-    while (callBytes.size() < originalOpSize) {
-        callBytes.push_back(0x90); // nop
+    switch (scanOptions.scanType) {
+        case ScanType::SINGLE: //
+            return DoPatchInternal(addresses[0] + scanOptions.injectOffset, scanOptions, logBuffer);
+        case ScanType::MULTIPLE: //
+            for (const auto& address : addresses) {
+                if (!DoPatchInternal(address + scanOptions.injectOffset, scanOptions, logBuffer)) return false;
+            }
+            return true;
     }
 
-    DoWithProtect(const_cast<BYTE*>(injectAddress), callBytes.size(), [injectAddress, callBytes] {
-        memcpy(const_cast<BYTE*>(injectAddress), callBytes.data(), callBytes.size()); // NOLINT(performance-no-int-to-ptr)
-    }, logBuffer);
-    LOG_BUFFER("Wrote call to new mem: " << BytesToString(callBytes))
-
-    return true;
+    return false; // Not reachable.
 }

@@ -13,7 +13,7 @@ bool AllocateMemory::AllocateGlobalAddresses(const std::string& moduleName, cons
 
     // First allocate a block of mem we can write to for injection.
     freeSpaceStartAddress = moduleAddress - allocatedNewMemSize; // An estimate. `VirtualAlloc` will return a pointer to where it actually starts.
-    LOG("Free space begin estimate: (" << moduleName << " + " << freeSpaceStartAddress << ")");
+    LOG("Free space begin estimate: " << std::uppercase << std::hex << freeSpaceStartAddress << " (" << moduleName << " - " << allocatedNewMemSize << ")");
 
     allocatedNewMemAddress = VirtualAlloc(reinterpret_cast<void*>(freeSpaceStartAddress), allocatedNewMemSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE); // NOLINT(performance-no-int-to-ptr)
     if (allocatedNewMemAddress == nullptr) {
@@ -21,7 +21,7 @@ bool AllocateMemory::AllocateGlobalAddresses(const std::string& moduleName, cons
         lock.unlock();
         return false;
     }
-    LOG("allocatedNewMemAddress: " << std::uppercase << std::hex << reinterpret_cast<const PTR_SIZE>(allocatedNewMemAddress));
+    LOG("allocatedNewMemAddress: " << PRINT_RELATIVE_ADDRESS_NEG(moduleName, moduleAddress, allocatedNewMemAddress));
     freeSpaceStartAddress = reinterpret_cast<PTR_SIZE>(allocatedNewMemAddress);
 
     // Make it writable by all. Without this the game crashes because it can't `mov` into the space we allocate.

@@ -60,4 +60,4 @@ public:
 
 #define LOG_BUFFER_PRE logBuffer->ClearLogFlags(); *logBuffer->tempOut << NOW << '\t'
 #define LOG_BUFFER_POST std::endl;
-#define LOG_BUFFER(str) if (logBuffer == nullptr) { LOG(str); } else { LOG_BUFFER_PRE << str << LOG_BUFFER_POST; }
+#define LOG_BUFFER(str) if (logBuffer == nullptr) { LOG(str); } else { LOG_BUFFER_PRE << str << LOG_BUFFER_POST; } struct dummy // Useless statement at the end exists only so we can ';' after the macro.
