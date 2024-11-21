@@ -4,8 +4,8 @@
 
 /**
 * You must call `AllocateGlobalAddresses` before you use it:
-
-    if (!AllocateGlobalAddresses(moduleName, moduleAddress)) {
+    AllocateMemory allocator;
+    if (!allocator.AllocateGlobalAddresses(moduleName, moduleAddress)) {
         MessageBoxW(nullptr, L"Patching failed.", L"Patching Failed", MB_ICONERROR | MB_OK);
         return;
     }
@@ -27,7 +27,8 @@ public:
     bool AllocateGlobalAddresses(const std::string& moduleName, PTR_SIZE moduleAddress, PTR_SIZE allocatedNewMemSize = 1024);
 
     /**
-     * 'Gives' chunks of the allocated space to the requester. Essentially just gives the pointer needed and shifts the unused ptr address to
+     * 'Gives' chunks of the allocated space to the requester. Essentially just returns a pointer to the allocated area and shifts the unused ptr address by the requested size.
+     * It is assumed that the requester will NOT exceed the requested bounds/size. If you do, you will overwrite whatever requests space next. There's no protection against this.
      */
     void* ReserveSpaceInAllocatedNewMem(PTR_SIZE size);
 
