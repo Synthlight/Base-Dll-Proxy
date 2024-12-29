@@ -13,6 +13,16 @@ public:
     static std::string GetDllPathFromSysPath(const std::string& dllName);
 };
 
+class EmptyDllProxy final : public IProxy {
+public:
+    void Attach() override {}
+    void Detach() override {}
+
+protected:
+    std::string GetTargetDllName() override { return "None"; }
+    std::string GetTargetDllPath() override { return "None"; }
+};
+
 class DInput8DllProxy final : public IProxy {
 protected:
     std::string GetTargetDllName() override { return "dinput8.dll"; }
