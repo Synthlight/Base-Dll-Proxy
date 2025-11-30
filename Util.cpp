@@ -117,3 +117,9 @@ MODULEINFO GetModuleInfo(_In_ const HANDLE hProcess, _In_ const HMODULE hModule)
     GetModuleInformation(hProcess, hModule, &moduleInfo, sizeof(MODULEINFO));
     return moduleInfo;
 }
+
+SYSTEM_INFO GetSysInfo() {
+    SYSTEM_INFO sysInfo;
+    GetSystemInfo(&sysInfo);
+    return sysInfo;
+}
