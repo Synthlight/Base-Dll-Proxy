@@ -3,7 +3,6 @@
 #include "AllocateMemory.h"
 
 #include "Logger.h"
-#include "ScanMemory.h"
 #include "Util.h"
 
 bool AllocateMemory::AllocateGlobalAddresses(const std::string& moduleName, const PTR_SIZE moduleAddress, const PTR_SIZE allocatedNewMemSize) {
@@ -11,21 +10,33 @@ bool AllocateMemory::AllocateGlobalAddresses(const std::string& moduleName, cons
 
     allocatedSize = allocatedNewMemSize;
 
-    // First allocate a block of mem we can write to for injection.
-    freeSpaceStartAddress = moduleAddress - allocatedNewMemSize; // An estimate. `VirtualAlloc` will return a pointer to where it actually starts.
-    LOG("Free space begin estimate: " << std::uppercase << std::hex << freeSpaceStartAddress << " (" << moduleName << " - " << allocatedNewMemSize << ")");
+    const auto sysInfo = GetSysInfo();
+    LOG("sysInfo.dwPageSize: " << std::uppercase << std::hex << sysInfo.dwPageSize);
+    LOG("sysInfo.dwAllocationGranularity: " << std::uppercase << std::hex << sysInfo.dwAllocationGranularity);
 
-    allocatedNewMemAddress = VirtualAlloc(reinterpret_cast<void*>(freeSpaceStartAddress), allocatedNewMemSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE); // NOLINT(performance-no-int-to-ptr)
-    if (allocatedNewMemAddress == nullptr) {
-        LOG("Error allocating `allocatedNewMemAddress`: \"" << GetLastErrorAsString() << "\", aborting.");
-        lock.unlock();
-        return false;
+    // First allocate a block of mem we can write to for injection.
+    freeSpaceStartAddress = moduleAddress - sysInfo.dwAllocationGranularity; // An estimate. `VirtualAlloc` will return a pointer to where it actually starts.
+    LOG("Free space begin estimate: " << std::uppercase << std::hex << freeSpaceStartAddress << " (" << moduleName << " - " << sysInfo.dwAllocationGranularity << ")");
+
+    int8_t tryCount = 0;
+
+    while (true) {
+        allocatedNewMemAddress = VirtualAlloc(reinterpret_cast<void*>(freeSpaceStartAddress), allocatedNewMemSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE); // NOLINT(performance-no-int-to-ptr)
+        if (allocatedNewMemAddress != nullptr) break;
+
+        LOG("Error allocating mem at " << std::uppercase << std::hex << freeSpaceStartAddress << ", trying again " << sysInfo.dwAllocationGranularity << " bytes earlier.");
+        freeSpaceStartAddress -= sysInfo.dwAllocationGranularity;
+
+        tryCount++;
+        if (tryCount > 20) {
+            LOG("Error allocating mem: \"" << GetLastErrorAsString() << "\", aborting.");
+            lock.unlock();
+            return false;
+        }
     }
+
     LOG("allocatedNewMemAddress: " << PRINT_RELATIVE_ADDRESS_NEG(moduleName, moduleAddress, allocatedNewMemAddress));
     freeSpaceStartAddress = reinterpret_cast<PTR_SIZE>(allocatedNewMemAddress);
-
-    // Make it writable by all. Without this the game crashes because it can't `mov` into the space we allocate.
-    VirtualProtect(allocatedNewMemAddress, allocatedNewMemSize, PAGE_EXECUTE_READWRITE);
 
     lock.unlock();
 
@@ -36,7 +47,7 @@ void* AllocateMemory::ReserveSpaceInAllocatedNewMem(const PTR_SIZE size) {
     lock.lock();
 
     const auto reservationAddress = reinterpret_cast<void*>(freeSpaceStartAddress); // NOLINT(performance-no-int-to-ptr)
-    freeSpaceStartAddress += size;
+    freeSpaceStartAddress         += size;
 
     lock.unlock();
 
