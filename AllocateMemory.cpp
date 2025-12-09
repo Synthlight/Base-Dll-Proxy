@@ -18,7 +18,7 @@ bool AllocateMemory::AllocateGlobalAddresses(const std::string& moduleName, cons
     freeSpaceStartAddress = moduleAddress - sysInfo.dwAllocationGranularity; // An estimate. `VirtualAlloc` will return a pointer to where it actually starts.
     LOG("Free space begin estimate: " << std::uppercase << std::hex << freeSpaceStartAddress << " (" << moduleName << " - " << sysInfo.dwAllocationGranularity << ")");
 
-    int8_t tryCount = 0;
+    int32_t tryCount = 0;
 
     while (true) {
         allocatedNewMemAddress = VirtualAlloc(reinterpret_cast<void*>(freeSpaceStartAddress), allocatedNewMemSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE); // NOLINT(performance-no-int-to-ptr)
@@ -28,7 +28,7 @@ bool AllocateMemory::AllocateGlobalAddresses(const std::string& moduleName, cons
         freeSpaceStartAddress -= sysInfo.dwAllocationGranularity;
 
         tryCount++;
-        if (tryCount > 20) {
+        if (tryCount > 500) {
             LOG("Error allocating mem: \"" << GetLastErrorAsString() << "\", aborting.");
             lock.unlock();
             return false;
